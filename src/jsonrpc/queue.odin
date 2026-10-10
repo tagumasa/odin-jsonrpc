@@ -16,7 +16,7 @@ import "core:sync"
 import "core:sync/chan"
 import "core:thread"
 
-import "jsonrpc:jsonutil"
+import "jsonutil:jsonutil"
 
 REQUEST_QUEUE_CAP :: 16
 

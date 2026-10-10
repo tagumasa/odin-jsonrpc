@@ -10,7 +10,7 @@ import "core:strings"
 import "core:sync"
 import "core:time"
 
-import "jsonrpc:jsonutil"
+import "jsonutil:jsonutil"
 import "jsonrpc:platform"
 
 // Reply carries a handler's immediate answer. result must be allocated

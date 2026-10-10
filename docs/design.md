@@ -9,18 +9,20 @@ defective.
 ## Layers
 
 ```
-src/jsonutil   JSON value helpers (vendored internal support)
-src/platform   the cancel-token tree, the shared error vocabulary,
-               the monotonic clock (vendored internal support)
-src/jsonrpc    the wire layer: both framings, the envelope, the Conn
-               (dispatch and correlation), the outbound writer, the
-               bounded request queue
+vendor/odin-jsonutil  JSON value helpers (pinned submodule, the
+                      jsonutil: collection)
+src/platform          the cancel-token tree, the shared error
+                      vocabulary, the monotonic clock (vendored
+                      internal support)
+src/jsonrpc           the wire layer: both framings, the envelope,
+                      the Conn (dispatch and correlation), the
+                      outbound writer, the bounded request queue
 ```
 
-`src/jsonutil` and `src/platform` are internal surface, not the
-library contract, with one exception shaped like a contract: the
-cancel-token tree — `conn_call`'s token parameter carries the
-`platform.Cancel_Token` type, so hosts construct and fire this
+`src/platform` and the vendored `jsonutil:` collection are internal
+surface, not the library contract, with one exception shaped like a
+contract: the cancel-token tree — `conn_call`'s token parameter carries
+the `platform.Cancel_Token` type, so hosts construct and fire this
 library's tokens. Everything is pure Odin on `core:*` with one
 foreign-import exception — darwin's libSystem `clock_gettime`
 (`src/platform/mono_darwin.odin`), because core ships no monotonic

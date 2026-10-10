@@ -15,8 +15,9 @@ jobs:
   # platform — the library ships on all three OSes, and Windows is
   # MSVC-native only (cross-compiling it from Linux is not a supported
   # path), so the runner matrix is the verification, not local
-  # cross-target checks. odin-jsonrpc is pure Odin `core:*`: a leg needs
-  # only the pinned compiler, just, and (on Windows) MSVC for linking.
+  # cross-target checks. odin-jsonrpc is pure Odin `core:*` over the
+  # vendored odin-jsonutil value layer: a leg needs the pinned
+  # compiler, just, the submodule, and (on Windows) MSVC for linking.
   odin:
     name: Odin (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
@@ -25,7 +26,10 @@ jobs:
       matrix:
         os: [ubuntu-latest, ubuntu-26.04-arm, macos-latest, windows-latest]
     steps:
+      # The value layer is a pinned submodule.
       - uses: actions/checkout@v4
+        with:
+          submodules: true
 
       # The nightly distribution replaces assets under the same date key
       # (consecutive runs can silently test different compilers). The

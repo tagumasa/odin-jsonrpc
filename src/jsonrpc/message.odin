@@ -6,7 +6,7 @@ import "core:encoding/json"
 import "core:mem"
 import "core:strings"
 
-import "jsonrpc:jsonutil"
+import "jsonutil:jsonutil"
 
 Msg_Kind :: enum {
 	Request,

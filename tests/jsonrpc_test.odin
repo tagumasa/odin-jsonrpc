@@ -12,7 +12,7 @@ import "core:testing"
 import "core:thread"
 import "core:time"
 import "jsonrpc:jsonrpc"
-import "jsonrpc:jsonutil"
+import "jsonutil:jsonutil"
 import "jsonrpc:platform"
 
 // conn_reader_entry is the reader-thread body: one conn_read_loop on its

@@ -13,9 +13,13 @@ odin-jsonrpc is a JSON-RPC 2.0 wire layer for Odin (pure Odin,
 (Content-Length headers and newline-delimited JSON), the envelope
 with ID normalization, and the `Conn` that dispatches requests and
 correlates responses, plus the bounded outbound writer and request
-queue. `src/jsonutil` and `src/platform` are vendored internal
-support packages (JSON value helpers; the cancel-token tree, the
-shared error vocabulary, the monotonic clock) — internal surface,
+queue — built on the vendored odin-jsonutil value layer
+(`vendor/odin-jsonutil`, the `jsonutil:` collection). `src/platform`
+is the vendored internal support package (the cancel-token tree, the
+shared error vocabulary, the monotonic clock). The submodule is
+never edited in this tree: value-layer changes are made in the
+odin-jsonutil repository, and this tree takes them by a pin bump.
+The support package and the value collection are internal surface,
 not the library contract, with one exception: the cancel-token tree
 is host-facing API, because `conn_call`'s token parameter carries
 the `platform.Cancel_Token` type.
@@ -28,12 +32,15 @@ library's surfaces report through their return values).
 
 ### Package layout and dependency direction
 
-`src/` is a single collection (imports use the `jsonrpc:` prefix).
-Dependencies flow one way only:
+`src/` is a single collection (imports use the `jsonrpc:` prefix);
+the value layer is mounted as the `jsonutil:` collection. Dependencies
+flow one way only:
 
 ```
-foundation: core:* + platform, jsonutil (pure Odin; the one foreign
-            import is darwin's libSystem clock_gettime)
+vendor/odin-jsonutil (pinned submodule, jsonutil: collection)
+src/platform (cancel-token tree, error vocabulary, monotonic clock;
+             pure Odin; the one foreign import is darwin's libSystem
+             clock_gettime)
   ↑ jsonrpc (both framings, the envelope, the Conn: dispatch and
              correlation, the outbound writer, the request queue)
 ```
@@ -41,11 +48,10 @@ foundation: core:* + platform, jsonutil (pure Odin; the one foreign
 - Lower layers must not import upper layers.
 - No process-global variables: state rides the owning struct
   (`jsonrpc.Conn`); `platform.mono_override` is the one sanctioned
-  seam (a virtual-clock test hook, nothing else).
+  seam (a virtual-clock test hook).
 - Consumers mount this tree as the `jsonrpc:` collection
-  (`-collection:jsonrpc=<path-to-src-parent>`); the collection name
-  is the library's stable identity and must not collide with a
-  host's own collection names.
+  (`-collection:jsonrpc=<path-to-src>`); the collection name must
+  not collide with a host's own collection names.
 
 # Project principles
 
@@ -93,6 +99,8 @@ just bench        # wire-path wall benchmarks (best of 5)
 - The Odin compiler is pinned to `dev-2026-10-nightly:84bc3fc` (the
   frozen `dev-2026-10` release; CI asserts the hash). After a toolchain
   move, re-run every gate and re-measure docs/benchmarks.md.
+- Clone with `--recurse-submodules`; the value layer is the
+  `vendor/odin-jsonutil` submodule.
 - `just test` writes `tmp/test.log`: the runner's exit status is
   honored first (a compile failure is never a green run), then the
   log gate fails on any match of

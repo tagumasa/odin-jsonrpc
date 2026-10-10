@@ -1,6 +1,8 @@
-# odin-jsonrpc build tasks. The packages live under src/ (the collection
-# is `jsonrpc:`); the suites are a separate package in tests/ importing
-# them through the collection.
+# odin-jsonrpc build tasks. The wire layer lives under src/ (the
+# collection is `jsonrpc:`); the value layer is the vendored
+# odin-jsonutil submodule (the `jsonutil:` collection); the suites
+# are a separate package in tests/ importing both through the
+# collections.
 
 # Odin links .exe on Windows; the tool binaries carry the suffix in
 # their names so one recipe line builds and invokes them on every OS.
@@ -10,12 +12,12 @@ exe := if os_family() == "windows" { ".exe" } else { "" }
 default:
 	@just --list
 
-# Type-check every package with vet and strict style (the wire layer and
-# the two vendored support packages).
+# Type-check the wire layer and the platform support package with
+# vet and strict style; the value layer is compiled in through the
+# jsonutil: collection.
 check:
-	odin check src/jsonrpc -collection:jsonrpc=src -vet -strict-style -no-entry-point
-	odin check src/jsonutil -collection:jsonrpc=src -vet -strict-style -no-entry-point
-	odin check src/platform -collection:jsonrpc=src -vet -strict-style -no-entry-point
+	odin check src/jsonrpc -collection:jsonrpc=src -collection:jsonutil=vendor/odin-jsonutil/src -vet -strict-style -no-entry-point
+	odin check src/platform -collection:jsonrpc=src -collection:jsonutil=vendor/odin-jsonutil/src -vet -strict-style -no-entry-point
 
 # Run the suites single-threaded under the log gate: the runner's own
 # exit status is honored first (a compile failure must not read as a
@@ -28,7 +30,7 @@ test:
 	set -e
 	mkdir -p tmp
 	set +e
-	odin test tests -collection:jsonrpc=src -define:ODIN_TEST_THREADS=1 > tmp/test.log 2>&1
+	odin test tests -collection:jsonrpc=src -collection:jsonutil=vendor/odin-jsonutil/src -define:ODIN_TEST_THREADS=1 > tmp/test.log 2>&1
 	status=$?
 	set -e
 	cat tmp/test.log
@@ -47,7 +49,7 @@ test:
 # only between runs of the same scenario in the same host state.
 bench:
 	@mkdir -p bin
-	odin build tools/bench -collection:jsonrpc=src -vet -strict-style -o:speed -out:bin/wire-bench{{exe}}
+	odin build tools/bench -collection:jsonrpc=src -collection:jsonutil=vendor/odin-jsonutil/src -vet -strict-style -o:speed -out:bin/wire-bench{{exe}}
 	./bin/wire-bench{{exe}}
 
 # Instruction counts need valgrind — a Linux host tool; the recipe
@@ -60,7 +62,7 @@ bench-callgrind scenario:
 		exit 0
 	fi
 	mkdir -p bin
-	odin build tools/bench -collection:jsonrpc=src -vet -strict-style -o:speed -out:bin/wire-bench{{exe}}
+	odin build tools/bench -collection:jsonrpc=src -collection:jsonutil=vendor/odin-jsonutil/src -vet -strict-style -o:speed -out:bin/wire-bench{{exe}}
 	mkdir -p tmp/cg
 	valgrind --tool=callgrind --callgrind-out-file=tmp/cg/{{scenario}}.out ./bin/wire-bench{{exe}} {{scenario}} > /dev/null 2>&1
 	callgrind_annotate tmp/cg/{{scenario}}.out | sed -n '20,32p'
