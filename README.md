@@ -23,10 +23,11 @@ connection object, memory and API discipline — is
 src/jsonrpc/   the wire layer: both framings, the envelope, the Conn
                (dispatch and correlation), the bounded outbound writer,
                the bounded request queue, the structural sanity scan
-src/jsonutil/  vendored internal support (JSON value helpers)
 src/platform/  vendored internal support (the cancel-token tree, the
                shared error vocabulary, the monotonic clock)
-tests/         the component suites for the three packages
+vendor/odin-jsonutil  the value layer as a pinned submodule (the
+               jsonutil: collection)
+tests/         the component suites for the wire layer and platform
 tools/
   bench/       the wire-path benchmark (just bench; the committed
                tables are docs/benchmarks.md)
@@ -93,7 +94,7 @@ is destroyed only after every waiter has returned from its wait.
 ## Quick start
 
 ```sh
-git clone https://github.com/tagumasa/odin-jsonrpc
+git clone --recurse-submodules https://github.com/tagumasa/odin-jsonrpc
 cd odin-jsonrpc
 just check         # odin check -vet -strict-style over every package
 just test          # serial suite; verdicts from the log, zero leak lines
@@ -110,6 +111,9 @@ instruction counts (Linux, valgrind).
 - The Odin compiler, nightly `dev-2026-10-nightly:84bc3fc` (the
   frozen `dev-2026-10` release; the gates are re-run and the measured
   tables re-baselined after toolchain moves)
+- The `vendor/odin-jsonutil` submodule checked out —
+  `--recurse-submodules` covers a fresh clone, `git submodule
+  update --init` an existing one
 - `just` (any recent version); on Windows the `sh`-scripted recipes
   (`test`, `bench-callgrind`) need Git Bash's `sh` on PATH — the CI
   runner image carries it
