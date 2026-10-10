@@ -1,0 +1,83 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  # The core suite: type-check (vet + strict style) and the test suite
+  # under its zero-leak log gate, on native builds for every supported
+  # platform — the library ships on all three OSes, and Windows is
+  # MSVC-native only (cross-compiling it from Linux is not a supported
+  # path), so the runner matrix is the verification, not local
+  # cross-target checks. odin-jsonrpc is pure Odin `core:*`: a leg needs
+  # only the pinned compiler, just, and (on Windows) MSVC for linking.
+  odin:
+    name: Odin (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, ubuntu-26.04-arm, macos-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+
+      # The nightly distribution replaces assets under the same date key
+      # (consecutive runs can silently test different compilers). The
+      # dev-YYYY-M GitHub releases are frozen assets; dev-2026-10 is
+      # exactly dev-2026-10-nightly:84bc3fc, the toolchain this
+      # repository is developed against (AGENTS.md tracks it). Re-pin
+      # deliberately when bumping the toolchain.
+      - name: Set up Odin (dev-2026-10)
+        uses: laytan/setup-odin@v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          release: dev-2026-10
+
+      # Hard gate: anything other than the pinned toolchain fails the job
+      # here. The setup action's failure modes (missing token, missing
+      # asset) silently fall back to a git-based build of a different
+      # revision, which reintroduces exactly the moving-compiler problem
+      # the pin exists to prevent.
+      - name: Assert Odin toolchain (dev-2026-10-nightly:84bc3fc)
+        shell: bash
+        run: |
+          odin version
+          odin version | grep -q 'dev-2026-10-nightly:84bc3fc'
+
+      # Odin invokes `clang` from PATH for every link. The setup action
+      # prepends Homebrew LLVM directories to PATH on darwin and the
+      # runner's toolchain layout changes over time, so which clang
+      # answers is environment state we do not control. Odin honors
+      # ODIN_CLANG_PATH; pin it to the Apple toolchain's own clang.
+      - name: Pin Odin's linker to the Apple toolchain (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          echo "clang on PATH: $(command -v clang)"
+          clang --version
+          echo "ODIN_CLANG_PATH=$(xcrun --find clang)" >> "$GITHUB_ENV"
+
+      # `just` is not preinstalled on any GitHub-hosted runner image.
+      - name: Set up just
+        uses: taiki-e/install-action@v2
+        with:
+          tool: just
+
+      - name: Set up MSVC (Windows)
+        if: runner.os == 'Windows'
+        uses: ilammy/msvc-dev-cmd@v1
+
+      # A hard gate, not advisory: the toolchain is pinned, so a new vet
+      # or strict-style complaint only appears when the pin moved on
+      # purpose — and then it should stop the line, not queue behind
+      # the tests.
+      - name: Check (vet + strict style)
+        run: just check
+
+      - name: Test (zero-leak gate)
+        run: just test

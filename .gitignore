@@ -1,0 +1,20 @@
+tmp/
+_test/
+
+# Editor/agent session artifacts
+.aubade/
+
+# Build and tool artifacts
+*.exe
+*.out
+*.log
+
+# Odin test binary (odin test tests drops it in the repo root when a
+# run crashes before cleanup)
+/tests.bin
+
+# Core drops from a crashed test run
+core
+core.*
+
+/bin/
